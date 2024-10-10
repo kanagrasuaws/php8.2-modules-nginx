@@ -1,0 +1,55 @@
+# Use the official Ubuntu base image
+FROM ubuntu:20.04
+
+# Set environment variables for non-interactive installation
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Update and install system dependencies
+RUN apt-get update && apt-get install -y \
+    software-properties-common \
+    curl \
+    wget \
+    gnupg2 \
+    lsb-release \
+    ca-certificates \
+    apt-transport-https \
+    nginx \
+    supervisor
+
+# Install PHP 8.2 and required PHP modules
+RUN add-apt-repository ppa:ondrej/php && \
+    apt-get update && \
+    apt-get install -y \
+    php8.2 \
+    php8.2-fpm \
+    php8.2-cli \
+    php8.2-mbstring \
+    php8.2-xml \
+    php8.2-curl \
+    php8.2-zip \
+    php8.2-gd \
+    php8.2-bcmath
+
+# Remove default Nginx site and copy custom Nginx configuration
+RUN rm /etc/nginx/sites-enabled/default
+COPY ./nginx.conf /etc/nginx/sites-available/default
+RUN ln -s /etc/nginx/sites-available/default /etc/nginx/sites-enabled/
+
+# Create directory for application code
+RUN mkdir -p /var/www/html
+
+# Expose HTTP port
+EXPOSE 80
+
+# Copy example PHP application to the container
+COPY ./yourapp /var/www/html
+
+# Copy the entrypoint script to start Nginx and PHP-FPM
+COPY ./docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+# Set the working directory
+WORKDIR /var/www/html
+
+# Use the entrypoint script
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
